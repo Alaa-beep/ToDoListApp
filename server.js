@@ -18,18 +18,27 @@ app.use("/api", todoListRoutes)
 app.listen(port, ()=>{
   console.log("Server started on port " + port)
 })
+
+let user
+function passwordProtected(req, res, next) {
+  res.set('WWW-Authenticate', 'Basic realm="Simple Todo App"')
+  console.log(req.headers.authorization)
+  if (req.headers.authorization) {
+  console.log(Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString())
+  let authentication = Buffer.from(req.headers.authorization.split(" ")[1], 'base64').toString();
+  let colonIndex = authentication.indexOf(":");
+  let username = authentication.substr(0,colonIndex);
+  let password = authentication.substr(colonIndex+1,(authentication.length)-1);
+  user = db.collection('users').findOne({username: username, password: password}, {'_id':1})
+  if (user)
+  next();
+  }
+  else
+  res.status(401).send("Authentication required")
+}
+
+app.use(passwordProtected)
 //*********************************************************************** *//
-let db
 
-app.use(express.static('public'))
-
-let connectionString = 'mongodb+srv://todoListUser:1581998medhat@cluster0-xayty.mongodb.net/ToDoList-App?retryWrites=true&w=majority'
-mongodb.connect(connectionString, {useNewUrlParser: true, useUnifiedTopology: true}, function(err, client) {
-  db = client.db()
-  app.listen(3000)
-})
-
-app.use(express.json())
-app.use(express.urlencoded({extended: false}))
 
 module.exports = app;
